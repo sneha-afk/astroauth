@@ -17,4 +17,4 @@ POST /v1/register
 |---------------|----------|----------|-----------------------------------|
 | `username`    | `string` | Yes      | Desired username   |
 | `email`       | `string` | Yes      | User email address         |
-| `password`    | `string` | Yes      | Desired password            |
+| `password`    | `string` | Yes      | Desired password (8 to 72 characters) |

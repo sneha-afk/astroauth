@@ -2,5 +2,5 @@ CREATE TABLE IF NOT EXISTS Users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL
+    password VARCHAR(72) NOT NULL
 );
