@@ -13,7 +13,6 @@ import (
 )
 
 func RegisterUser(c *gin.Context) {
-	log.Print("pinged reg user")
 	var regUser models.UserInternal
 	if err := c.BindJSON(&regUser); err != nil {
 		log.Printf("RegisterUser: %v", err)
@@ -53,4 +52,25 @@ func RegisterUser(c *gin.Context) {
 
 func GetUserInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, "pinged user info")
+}
+
+func LoginUser(c *gin.Context) {
+	var loginAttempt models.UserInternal
+	if err := c.BindJSON(&loginAttempt); err != nil {
+		log.Printf("LoginUser: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	success, err := store.CheckUserCredentials(loginAttempt)
+	if !success || err != nil {
+		log.Printf("LoginUser: %v", err)
+		details := err.Error()
+		if err == nil {
+			details = "details did not match"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "could not login", "details": details})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "login success"})
 }

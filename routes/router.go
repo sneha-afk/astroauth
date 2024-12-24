@@ -24,10 +24,13 @@ func RegisterRoutes(r *gin.Engine) {
 	v1 := r.Group("/v1")
 	{
 		v1.POST("/register", controllers.RegisterUser)
-		// v1.GET("/user/:id", controllers.GetUserInfo)
+		v1.POST("/login", controllers.LoginUser)
 
 		// Protected routes
-		// authorized := v1.Group("/", )
+		authorized := v1.Group("/")
+		{
+			authorized.GET("/user/:id", controllers.GetUserInfo)
+		}
 	}
 
 }
