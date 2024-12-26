@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/sneha-afk/astroauth/models"
 	"github.com/sneha-afk/astroauth/store"
@@ -62,15 +64,31 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
+	// Check credentials with the DB
 	success, err := store.CheckUserCredentials(loginAttempt)
 	if !success || err != nil {
-		log.Printf("LoginUser: %v", err)
 		details := err.Error()
 		if err == nil {
 			details = "details did not match"
 		}
+		log.Printf("LoginUser: %v", details)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "could not login", "details": details})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "login success"})
+
+	// Give them a JWT
+	userJWT := jwt.NewWithClaims(jwt.SigningMethodRS256,
+		jwt.MapClaims{
+			"iss": "astroauth-server",
+			"sub": loginAttempt.Username,
+			"exp": time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+	signedToken, err := userJWT.SignedString(utils.PrivateKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not sign token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "login success", "token": signedToken})
 }
