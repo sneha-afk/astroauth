@@ -53,7 +53,12 @@ func RegisterUser(c *gin.Context) {
 }
 
 func GetUserInfo(c *gin.Context) {
-	c.JSON(http.StatusOK, "pinged user info")
+	username, _ := c.Get("username")
+	username, ok := username.(string)
+	if !ok {
+		username = "<couldn't parse>"
+	}
+	c.JSON(http.StatusOK, fmt.Sprintf("pinged user info, hi %v", username))
 }
 
 func LoginUser(c *gin.Context) {

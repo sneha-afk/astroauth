@@ -9,17 +9,15 @@ import (
 )
 
 func RegisterRoutes(r *gin.Engine) {
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-
 	// Handle panics by sending 500 (internal server err) back
 	r.Use(gin.Recovery())
 
 	// For now, only take in JSON
 	r.Use(utils.ContentTypeIsJson())
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
 
 	v1 := r.Group("/v1")
 	{
@@ -29,7 +27,9 @@ func RegisterRoutes(r *gin.Engine) {
 		// Protected routes
 		authorized := v1.Group("/")
 		{
-			authorized.GET("/user/:id", controllers.GetUserInfo)
+			authorized.Use(utils.AuthVerification())
+
+			authorized.GET("/user/:username", controllers.GetUserInfo)
 		}
 	}
 
