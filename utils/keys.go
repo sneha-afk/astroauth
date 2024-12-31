@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -10,25 +11,13 @@ import (
 )
 
 var (
-	PublicKey  *rsa.PublicKey
-	PrivateKey *rsa.PrivateKey
+	PublicKey  any
+	PrivateKey any
 )
 
 func LoadKeys(privPath string, pubPath string, keyType string) error {
-	if keyType == "RSA" {
-		if err := loadRSAPrivate(privPath); err != nil {
-			return err
-		}
-		if err := loadRSAPublic(pubPath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func loadRSAPrivate(path string) error {
-	privFile, err := os.Open(path)
+	// Get bytes from both private and public key files
+	privFile, err := os.Open(privPath)
 	if err != nil {
 		return fmt.Errorf("LoadKeys: failed opening private key file: %w", err)
 	}
@@ -39,27 +28,7 @@ func loadRSAPrivate(path string) error {
 		return fmt.Errorf("LoadKeys: failed reading private key file: %w", err)
 	}
 
-	privBlock, _ := pem.Decode(privKeyBytes)
-	if privBlock == nil || privBlock.Type != "PRIVATE KEY" {
-		return fmt.Errorf("LoadKeys: failed to decode private key PEM block")
-	}
-
-	loadedPrivKey, err := x509.ParsePKCS8PrivateKey(privBlock.Bytes)
-	if err != nil {
-		return fmt.Errorf("LoadKeys: could not parse private key: %w", err)
-	}
-
-	rsaPrivKey, ok := loadedPrivKey.(*rsa.PrivateKey)
-	if !ok {
-		return fmt.Errorf("LoadKeys: not an RSA private key")
-	}
-
-	PrivateKey = rsaPrivKey
-	return nil
-}
-
-func loadRSAPublic(path string) error {
-	pubFile, err := os.Open(path)
+	pubFile, err := os.Open(pubPath)
 	if err != nil {
 		return fmt.Errorf("LoadKeys: failed opening public key file: %w", err)
 	}
@@ -70,21 +39,92 @@ func loadRSAPublic(path string) error {
 		return fmt.Errorf("LoadKeys: failed reading public key file: %w", err)
 	}
 
-	pubBlock, _ := pem.Decode(pubKeyBytes)
+	// Parse according to signing method
+	if keyType == "RSA" {
+		if err := loadRSAPrivate(privKeyBytes); err != nil {
+			return err
+		}
+		if err := loadRSAPublic(pubKeyBytes); err != nil {
+			return err
+		}
+	} else if keyType == "ECDSA" {
+		if err := loadECDSAPrivate(privKeyBytes); err != nil {
+			return err
+		}
+		if err := loadECDSAPublic(pubKeyBytes); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func loadRSAPrivate(privBytes []byte) error {
+	privBlock, _ := pem.Decode(privBytes)
+	if privBlock == nil || privBlock.Type != "PRIVATE KEY" {
+		return fmt.Errorf("loadRSAPrivate: failed to decode private key PEM block")
+	}
+
+	loadedPrivKey, err := x509.ParsePKCS8PrivateKey(privBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("loadRSAPrivate: could not parse private key: %w", err)
+	}
+
+	rsaPrivKey, ok := loadedPrivKey.(*rsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("loadRSAPrivate: not an RSA private key")
+	}
+
+	PrivateKey = rsaPrivKey
+	return nil
+}
+
+func loadRSAPublic(pubBytes []byte) error {
+	pubBlock, _ := pem.Decode(pubBytes)
 	if pubBlock == nil || pubBlock.Type != "PUBLIC KEY" {
-		return fmt.Errorf("LoadKeys: failed to decode public key PEM block")
+		return fmt.Errorf("loadRSAPublic: failed to decode public key PEM block")
 	}
 
 	loadedPubKey, err := x509.ParsePKIXPublicKey(pubBlock.Bytes)
 	if err != nil {
-		return fmt.Errorf("LoadKeys: could not parse public key: %w", err)
+		return fmt.Errorf("loadRSAPublic: could not parse public key: %w", err)
 	}
 
 	rsaPubKey, ok := loadedPubKey.(*rsa.PublicKey)
 	if !ok {
-		return fmt.Errorf("LoadKeys: not an RSA public key")
+		return fmt.Errorf("loadRSAPublic: not an RSA public key")
 	}
 
 	PublicKey = rsaPubKey
+	return nil
+}
+
+func loadECDSAPrivate(privBytes []byte) error {
+	loadedPrivKey, err := x509.ParseECPrivateKey(privBytes)
+	if err != nil {
+		return fmt.Errorf("loadECDSAPrivate: could not parse private key: %w", err)
+	}
+
+	PrivateKey = loadedPrivKey
+	return nil
+}
+
+func loadECDSAPublic(pubBytes []byte) error {
+	pubBlock, _ := pem.Decode(pubBytes)
+	if pubBlock == nil || pubBlock.Type != "PUBLIC KEY" {
+		return fmt.Errorf("loadECDSAPublic: failed to decode public key PEM block")
+	}
+
+	loadedPubKey, err := x509.ParsePKIXPublicKey(pubBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("loadECDSAPublic: could not parse public key: %w", err)
+	}
+
+	ecdsaPubKey, ok := loadedPubKey.(*ecdsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("loadECDSAPublic: not an RSA public key")
+	}
+
+	PublicKey = ecdsaPubKey
 	return nil
 }

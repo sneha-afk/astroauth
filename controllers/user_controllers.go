@@ -91,7 +91,8 @@ func LoginUser(c *gin.Context) {
 
 	signedToken, err := userJWT.SignedString(utils.PrivateKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not sign token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not sign token", "details": err.Error()})
+		log.Printf("LoginUser: %v", err.Error())
 		return
 	}
 

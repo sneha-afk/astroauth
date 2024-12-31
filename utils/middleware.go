@@ -38,7 +38,7 @@ func AuthVerification() gin.HandlerFunc {
 			// TODO: can check signing type with the key type used
 			return PublicKey, nil
 		})
-		if !token.Valid || err != nil {
+		if token == nil || !token.Valid || err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			c.Abort()
 			return

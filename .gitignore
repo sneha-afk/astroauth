@@ -25,4 +25,8 @@ go.work.sum
 .env
 
 .vscode/
+*.db
+
+# Keys
 *.pem
+*.der
