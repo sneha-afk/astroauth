@@ -82,7 +82,7 @@ func LoginUser(c *gin.Context) {
 	}
 
 	// Give them a JWT
-	userJWT := jwt.NewWithClaims(jwt.SigningMethodRS256,
+	userJWT := jwt.NewWithClaims(utils.SigningMethod,
 		jwt.MapClaims{
 			"iss": "astroauth-server",
 			"sub": loginAttempt.Username,

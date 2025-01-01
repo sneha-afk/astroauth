@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/golang-jwt/jwt"
 )
 
 var (
-	PublicKey  any
-	PrivateKey any
+	PublicKey     any
+	PrivateKey    any
+	SigningMethod jwt.SigningMethod
 )
 
 func LoadKeys(privPath string, pubPath string, keyType string) error {
@@ -41,13 +44,20 @@ func LoadKeys(privPath string, pubPath string, keyType string) error {
 
 	// Parse according to signing method
 	if keyType == "RSA" {
+		SigningMethod = jwt.SigningMethodRS512
 		if err := loadRSAPrivate(privKeyBytes); err != nil {
 			return err
 		}
 		if err := loadRSAPublic(pubKeyBytes); err != nil {
 			return err
 		}
-	} else if keyType == "ECDSA" {
+	} else if keyType[:2] == "ES" {
+		if keyType == "ES256" {
+			SigningMethod = jwt.SigningMethodES256
+		} else if keyType == "ES512" {
+			SigningMethod = jwt.SigningMethodES512
+		}
+
 		if err := loadECDSAPrivate(privKeyBytes); err != nil {
 			return err
 		}
@@ -100,7 +110,12 @@ func loadRSAPublic(pubBytes []byte) error {
 }
 
 func loadECDSAPrivate(privBytes []byte) error {
-	loadedPrivKey, err := x509.ParseECPrivateKey(privBytes)
+	privBlock, _ := pem.Decode(privBytes)
+	if privBlock == nil || privBlock.Type != "EC PRIVATE KEY" {
+		return fmt.Errorf("loadECDSAPrivate: failed to decode private key PEM block")
+	}
+
+	loadedPrivKey, err := x509.ParseECPrivateKey(privBlock.Bytes)
 	if err != nil {
 		return fmt.Errorf("loadECDSAPrivate: could not parse private key: %w", err)
 	}
